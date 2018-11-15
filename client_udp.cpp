@@ -7,8 +7,6 @@
 #include <unistd.h>
 #include "classes.h"
 
-#define BUFSIZ 256
-
 using namespace std;
 
 class Sender {

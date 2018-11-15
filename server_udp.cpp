@@ -5,8 +5,8 @@
 #include <cstring>
 #include <unistd.h>
 #include <iostream>
+#include "classes.h"
 
-#define BUFSIZ 256
 using namespace std;
 
 
@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
     struct sockaddr_in receiver_addr;   //服务器网络地址结构体
     struct sockaddr_in sender_addr; //客户端网络地址结构体
     int sin_size;
-    char buf[BUFSIZ];  //数据传送的缓冲区
+    char buf[3];  //数据传送的缓冲区
     memset(&receiver_addr, 0, sizeof(receiver_addr)); //数据初始化--清零
     receiver_addr.sin_family = AF_INET; //设置为IP通信
     receiver_addr.sin_addr.s_addr = INADDR_ANY;//服务器IP地址--允许连接到所有本地地址上
@@ -39,14 +39,15 @@ int main(int argc, char *argv[]) {
     cout << "waiting for a packet at port:" << ntohs(receiver_addr.sin_port) << endl;
 
     /*接收客户端的数据并将其发送给客户端--recvfrom是无连接的*/
-    if ((len = recvfrom(server_sockfd, buf, BUFSIZ, 0, (struct sockaddr *) &sender_addr, (socklen_t *) &sin_size)) <
+    if ((len = recvfrom(server_sockfd, buf, 3, 0, (struct sockaddr *) &sender_addr, (socklen_t *) &sin_size)) <
         0) {
         cerr << "receieve error" << endl;
         return -3;
     }
     cout << "received packet from:" << inet_ntoa(sender_addr.sin_addr) << ":" << ntohs(sender_addr.sin_port) << endl;
-    buf[len] = '\0';
-    cout << "contents:" << buf << endl;
+    //buf[len] = '\0';
+    UDP_Segment tmp = UDP_Segment(buf);
+    cout << "contents:" << tmp.Data << endl;
 
     /*关闭套接字*/
     close(server_sockfd);
