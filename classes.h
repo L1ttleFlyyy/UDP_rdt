@@ -2,8 +2,8 @@
 // Created by mininet on 11/15/18.
 //
 
-#ifndef TEST_PRO_CLASSES_H
-#define TEST_PRO_CLASSES_H
+#ifndef CLASSES_H
+#define CLASSES_H
 #include <iostream>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -11,7 +11,6 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <unistd.h>
-#include "classes.h"
 
 class UDP_Segment {
 public:
@@ -26,7 +25,9 @@ public:
 
     UDP_Segment(char Raw_Data[3]);
 
+    UDP_Segment();
+
 private:
     uint8_t Control_Byte;
 };
-#endif //TEST_PRO_CLASSES_H
+#endif //CLASSES_H

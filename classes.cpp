@@ -1,10 +1,3 @@
-#include <iostream>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <cstring>
-#include <unistd.h>
 #include "classes.h"
 
 
@@ -37,4 +30,15 @@ UDP_Segment::UDP_Segment(char Raw_Data[3]) {
     SYN = Control_Byte & (uint8_t) 1;
     ACK = Control_Byte & (uint8_t) 2;
     FIN = Control_Byte & (uint8_t) 4;
+}
+
+
+UDP_Segment::UDP_Segment()
+{
+    Control_Byte = 0;
+    SEQ = 0;
+    Data = 0;
+    SYN = false;
+    ACK = false;
+    FIN = false;
 }
