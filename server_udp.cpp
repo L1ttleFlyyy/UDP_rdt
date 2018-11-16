@@ -43,17 +43,40 @@ public:
         }
     }
 
+    bool SetSendTimeout(int milliseconds)
+    {
+        timeval tv;
+        tv.tv_sec = milliseconds/1000;
+        tv.tv_usec = (milliseconds-tv.tv_sec)*1000;
+        if(setsockopt(sockfd,SOL_SOCKET,SO_SNDTIMEO,&tv, sizeof(tv))<0){
+            cerr<<"Timeout setting failed"<<endl;
+            return false;
+        }else return true;
+    }
+
+    bool SetRecvTimeout(int milliseconds)
+    {
+        timeval tv;
+        tv.tv_sec = milliseconds/1000;
+        tv.tv_usec = (milliseconds-tv.tv_sec)*1000;
+        if(setsockopt(sockfd,SOL_SOCKET,SO_RCVTIMEO,&tv, sizeof(tv))<0){
+            cerr<<"Timeout setting failed"<<endl;
+            return false;
+        }else return true;
+    }
+
     void Close()
     {
         close(sockfd);
     }
-
-private:
     struct sockaddr_in remote_address;
     struct sockaddr_in local_address;
+private:
     int sockfd;
     socklen_t socklen;
 };
+
+enum SocketStatus{Idle,Establishing,Transmitting,Finishing,Timeout};
 
 int main(int argc, char *argv[]) {
 /*    int server_sockfd;
@@ -92,16 +115,87 @@ int main(int argc, char *argv[]) {
     close(server_sockfd);
 
     return 0;*/
-    Receiver reciever = Receiver("127.0.0.1",8000);
-    char buf[3]{7,0,'z'};
-    UDP_Segment tmp;
-    if(!reciever.InitializeSocket())
+    enum SocketStatus status = Idle;
+    Receiver receiver = Receiver("127.0.0.1",8000);
+    UDP_Segment segment = UDP_Segment();
+    UDP_Segment ACK;
+    int cnt;
+    if(!receiver.InitializeSocket())
         return 1;
-    if(!reciever.WaitOne(tmp))
-        return 2;
-    cout<<tmp.Data<<endl;
-    if(!reciever.SendOne(UDP_Segment(buf)))
-        return 3;
-    reciever.Close();
-    return 0;
+    while(true)
+    {
+        switch (status){
+            case Idle:{
+                receiver.SetRecvTimeout(0);
+                cout<<"Receiver is ready at "<<inet_ntoa(receiver.local_address.sin_addr)
+                <<": "<<ntohs(receiver.local_address.sin_port)<<endl;
+                receiver.WaitOne(segment);
+                if(segment.SYN)
+                {
+                    receiver.SetRecvTimeout(5000);//timeout 5s;
+                    cout<<"SYN received from "<<inet_ntoa(receiver.remote_address.sin_addr)
+                    <<": "<<ntohs(receiver.remote_address.sin_port)<<endl;
+                    status = Establishing;
+                }
+                continue;
+            }
+            case Establishing:
+            {
+                ACK = UDP_Segment(false,true,false,0,'a');
+                cout<<"Sending ACK with SEQ #0"<<endl;
+                receiver.SendOne(ACK);
+                if(receiver.WaitOne(segment))
+                {
+                    if(segment.SEQ>0)
+                    {
+                        status = Transmitting;
+                    }
+                } else{
+                    status = Timeout;
+                }
+                continue;
+            }
+            case Transmitting:{
+                ACK.SEQ = segment.SEQ;
+                cout<<"Sending ACK with SEQ #"<<ACK.SEQ<<endl;
+                receiver.SendOne(ACK);
+                if(receiver.WaitOne(segment))
+                {
+                    if(segment.FIN)
+                    {
+                        cout<<"FIN received, connection terminating..."<<endl;
+                        receiver.SetRecvTimeout(200);//200ms timeout for FIN
+                        ACK = UDP_Segment(false,true,true,segment.ACK,'a');
+                        cnt = 0;
+                        status = Finishing;
+                    } else{
+                        cout<<"Data received: \""<<segment.Data<<"\" with SEQ #"<<segment.SEQ<<endl;
+                    }
+                }
+                else
+                    status = Timeout;
+                continue;
+            }
+            case Finishing:{
+                cout<<"Sending FIN"<<endl;
+                receiver.SendOne(ACK);
+                if(receiver.WaitOne(segment))
+                    cnt = 0;
+                else
+                    cnt++;
+                if(cnt==25)
+                    status = Idle;
+                continue;
+            }
+            case Timeout:{
+                cout<<"Connection Timeout, release port to Idle..."<<endl;
+                status = Idle;
+                continue;
+            }
+            default:{
+                cerr<<"Fatal error: undefined socket status"<<endl;
+                return 2;
+            }
+        }
+    }
 }

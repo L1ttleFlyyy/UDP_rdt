@@ -14,7 +14,7 @@ public:
 
     bool InitializeSocket() {
         if ((sockfd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-            cerr << "socket error" << endl;
+            cerr << "Failed to create socket" << endl;
             return false;
         }
         cout << "Socket Created" << endl;
@@ -36,6 +36,28 @@ public:
             udp_segment = UDP_Segment(buf);
             return true;
         }
+    }
+
+    bool SetSendTimeout(int milliseconds)
+    {
+        timeval tv;
+        tv.tv_sec = milliseconds/1000;
+        tv.tv_usec = (milliseconds-tv.tv_sec)*1000;
+        if(setsockopt(sockfd,SOL_SOCKET,SO_SNDTIMEO,&tv, sizeof(tv))<0){
+            cerr<<"Timeout setting failed"<<endl;
+            return false;
+        }else return true;
+    }
+
+    bool SetRecvTimeout(int milliseconds)
+    {
+        timeval tv;
+        tv.tv_sec = milliseconds/1000;
+        tv.tv_usec = (milliseconds-tv.tv_sec)*1000;
+        if(setsockopt(sockfd,SOL_SOCKET,SO_RCVTIMEO,&tv, sizeof(tv))<0){
+            cerr<<"Timeout setting failed"<<endl;
+            return false;
+        }else return true;
     }
 
     void Close()
@@ -65,5 +87,5 @@ int main(int argc, char *argv[]) {
     cout<<tmp.Data<<endl;
     sender.Close();
     return 0;
-    
+
 }
