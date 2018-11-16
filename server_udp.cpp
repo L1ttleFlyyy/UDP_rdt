@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
     Receiver receiver = Receiver("127.0.0.1",8000);
     UDP_Segment segment = UDP_Segment();
     UDP_Segment ACK;
-    int cnt;
+    int cnt =0;
     if(!receiver.InitializeSocket())
         return 1;
     while(true)
@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
             }
             case Establishing:
             {
-                ACK = UDP_Segment(false,true,false,0,'a');
+                ACK = UDP_Segment(true,true,false,0,'a');
                 cout<<"Sending ACK with SEQ #0"<<endl;
                 receiver.SendOne(ACK);
                 if(receiver.WaitOne(segment))
@@ -156,8 +156,9 @@ int main(int argc, char *argv[]) {
                 continue;
             }
             case Transmitting:{
-                ACK.SEQ = segment.SEQ;
-                cout<<"Sending ACK with SEQ #"<<ACK.SEQ<<endl;
+                cout<<"Data received: \""<<segment.Data<<"\" with SEQ #"<<(int)segment.SEQ<<endl;
+                ACK = UDP_Segment(false,true,false,segment.SEQ,'a');
+                cout<<"Sending ACK with SEQ #"<<(int)ACK.SEQ<<endl;
                 receiver.SendOne(ACK);
                 if(receiver.WaitOne(segment))
                 {
@@ -166,10 +167,10 @@ int main(int argc, char *argv[]) {
                         cout<<"FIN received, connection terminating..."<<endl;
                         receiver.SetRecvTimeout(200);//200ms timeout for FIN
                         ACK = UDP_Segment(false,true,true,segment.ACK,'a');
+                        cout << "Sending FIN" << endl;
+                        receiver.SendOne(ACK);
                         cnt = 0;
                         status = Finishing;
-                    } else{
-                        cout<<"Data received: \""<<segment.Data<<"\" with SEQ #"<<segment.SEQ<<endl;
                     }
                 }
                 else
@@ -177,13 +178,13 @@ int main(int argc, char *argv[]) {
                 continue;
             }
             case Finishing:{
-                cout<<"Sending FIN"<<endl;
-                receiver.SendOne(ACK);
-                if(receiver.WaitOne(segment))
-                    cnt = 0;
-                else
+                if(cnt<25) {
+                    if (receiver.WaitOne(segment)) {
+                        cout << "Sending FIN" << endl;
+                        receiver.SendOne(ACK);
+                    }
                     cnt++;
-                if(cnt==25)
+                }else
                     status = Idle;
                 continue;
             }

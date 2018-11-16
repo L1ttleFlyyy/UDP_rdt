@@ -5,16 +5,16 @@ UDP_Segment::UDP_Segment(bool SYN, bool ACK, bool FIN, uint8_t SEQ_Number, char 
     this->SYN = SYN;
     this->ACK = ACK;
     this->FIN = FIN;
-    this->SEQ = (char) SEQ_Number;
+    this->SEQ = SEQ_Number;
     this->Data = Data;
     if (SYN)
         Control_Byte = 1;
     else
         Control_Byte = 0;
     if (ACK)
-        Control_Byte = Control_Byte & (uint8_t) 2;
+        Control_Byte = Control_Byte | (uint8_t) 2;
     if (FIN)
-        Control_Byte = Control_Byte & (uint8_t) 4;
+        Control_Byte = Control_Byte | (uint8_t) 4;
     Raw_Data[0] = (char) Control_Byte;
     Raw_Data[1] = (char) SEQ;
     Raw_Data[2] = Data;
