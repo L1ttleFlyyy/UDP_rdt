@@ -2,80 +2,6 @@
 
 using namespace std;
 
-class Receiver {
-public:
-    Receiver(string local_address, uint16_t remote_port) {
-        memset(&this->local_address, 0, sizeof(sockaddr_in));
-        this->local_address.sin_addr.s_addr = inet_addr(local_address.c_str());
-        this->local_address.sin_port = htons(remote_port);
-        this->local_address.sin_family = AF_INET;
-        socklen = sizeof(struct sockaddr);
-    }
-
-    bool InitializeSocket() {
-        if ((sockfd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-            cerr << "socket error" << endl;
-            return false;
-        }
-        if((bind(sockfd,(sockaddr*)&local_address,socklen))<0)
-        {
-            cerr<<"bind error"<<endl;
-            return false;
-        }
-        cout << "Socket Created" << endl;
-        return true;
-    }
-
-    bool SendOne(UDP_Segment udp_segment) {
-        if (sendto(sockfd, udp_segment.Raw_Data, 3, 0, (struct sockaddr *)&remote_address,socklen) < 0) {
-            return false;
-        } else
-            return true;
-    }
-
-    bool WaitOne(UDP_Segment &udp_segment) {
-        char buf[3];
-        if (recvfrom(sockfd, buf, 3, 0, (struct sockaddr *) &remote_address, &socklen) < 0) {
-            return false;
-        } else {
-            udp_segment = UDP_Segment(buf);
-            return true;
-        }
-    }
-
-    bool SetSendTimeout(int milliseconds)
-    {
-        timeval tv;
-        tv.tv_sec = milliseconds/1000;
-        tv.tv_usec = (milliseconds-tv.tv_sec)*1000;
-        if(setsockopt(sockfd,SOL_SOCKET,SO_SNDTIMEO,&tv, sizeof(tv))<0){
-            cerr<<"Timeout setting failed"<<endl;
-            return false;
-        }else return true;
-    }
-
-    bool SetRecvTimeout(int milliseconds)
-    {
-        timeval tv;
-        tv.tv_sec = milliseconds/1000;
-        tv.tv_usec = (milliseconds-tv.tv_sec)*1000;
-        if(setsockopt(sockfd,SOL_SOCKET,SO_RCVTIMEO,&tv, sizeof(tv))<0){
-            cerr<<"Timeout setting failed"<<endl;
-            return false;
-        }else return true;
-    }
-
-    void Close()
-    {
-        close(sockfd);
-    }
-    struct sockaddr_in remote_address;
-    struct sockaddr_in local_address;
-private:
-    int sockfd;
-    socklen_t socklen;
-};
-
 enum SocketStatus{Idle,Establishing,Transmitting,Finishing,Timeout};
 
 int main(int argc, char *argv[]) {
@@ -126,13 +52,13 @@ int main(int argc, char *argv[]) {
     {
         switch (status){
             case Idle:{
-                receiver.SetRecvTimeout(0);
+                receiver.SetTimeout(0);
                 cout<<"Receiver is ready at "<<inet_ntoa(receiver.local_address.sin_addr)
                 <<": "<<ntohs(receiver.local_address.sin_port)<<endl;
                 receiver.WaitOne(segment);
                 if(segment.SYN)
                 {
-                    receiver.SetRecvTimeout(5000);//timeout 5s;
+                    receiver.SetTimeout(5000);//timeout 5s;
                     cout<<"SYN received from "<<inet_ntoa(receiver.remote_address.sin_addr)
                     <<": "<<ntohs(receiver.remote_address.sin_port)<<endl;
                     status = Establishing;
@@ -165,7 +91,7 @@ int main(int argc, char *argv[]) {
                     if(segment.FIN)
                     {
                         cout<<"FIN received, connection terminating..."<<endl;
-                        receiver.SetRecvTimeout(200);//200ms timeout for FIN
+                        receiver.SetTimeout(200);//200ms timeout for FIN
                         ACK = UDP_Segment(false,true,true,segment.ACK,'a');
                         cout << "Sending FIN" << endl;
                         receiver.SendOne(ACK);
