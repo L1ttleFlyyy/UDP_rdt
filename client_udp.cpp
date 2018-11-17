@@ -8,14 +8,14 @@ enum SocketStatus {
 
 int main(int argc, char *argv[]) {
 
-    string buffer;
-    int len;
-    do {
+    string buffer;//where data temporally saved
+    int len;//buffer length
+    do {//input check
         cout << "Please input at least 20 characters:" << endl;
         cin >> buffer;
     } while ((len = buffer.length()) < 20);
 
-    Sender sender = Sender("127.0.0.1", 8000);
+    Sender sender = Sender("10.0.0.2", 11714);
     if (!sender.InitializeSocket()) {
         sender.Close();
         return 1;
@@ -35,13 +35,13 @@ int main(int argc, char *argv[]) {
                 cout << "Establishing connection with receiver...(SYN)" << endl;
                 sender.SendOne(segment);
                 if (sender.WaitOne(ACK) && ACK.ACK) {
-                    if (ACK.SYN) {
+                    if (ACK.SYN) {//SYN ACK received
                         cnt = 0;
                         status = Transmitting;
                     }
                 } else
                     cnt++;
-                if (cnt == 25) {
+                if (cnt == 25) {//Only try 25 times retransimission then abort process
                     status = Timeout;
                 }
                 continue;
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
                         cnt++;
                         cout << "Window timeout..." << endl;
                     }
-                    if (cnt == 25)//At most retransmit 25 times;
+                    if (cnt == 25)//At most retransmit 25 times
                         status = Timeout;
                 } else {
                     cnt = 0;
@@ -67,14 +67,16 @@ int main(int argc, char *argv[]) {
                 continue;
             }
             case Finishing: {
-                if (cnt < 25) {
+                if (cnt < 25) {//Only retransmit at most 25 times
                     segment = UDP_Segment(false, false, true, ACK.SEQ + 1, 'e');
                     cout << "Sending FIN with SEQ #" << (ACK.SEQ + 1) << endl;
                     sender.SendOne(segment);
                     if (sender.WaitOne(ACK)) {
-                        if (ACK.FIN&&ACK.ACK)
+                        if (ACK.FIN && ACK.ACK) {//FIN ACK received
                             cout << "ACK with FIN received" << endl;
-                        return 0;
+                            sender.Close();
+                            return 0;
+                        }
                     } else
                         cnt++;
                 } else {

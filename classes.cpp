@@ -17,10 +17,10 @@ UDP_Segment::UDP_Segment(bool SYN, bool ACK, bool FIN, uint SEQ_Number, char Dat
     if (ACK)
         Control_Byte = Control_Byte | (uint8_t) 4;
     Raw_Data[0] = (char) Control_Byte;
-    Raw_Data[1] = (char) SEQ;
-    Raw_Data[2] = (char) SEQ >> 8;
-    Raw_Data[3] = (char) SEQ >> 16;
-    Raw_Data[4] = (char) SEQ >> 24;
+    Raw_Data[1] = (char) SEQ;//Bits[7:0]
+    Raw_Data[2] = (char) SEQ >> 8;//Bits[15:8]
+    Raw_Data[3] = (char) SEQ >> 16;//Bits[23:16]
+    Raw_Data[4] = (char) SEQ >> 24;//Bits[31:24]
     Raw_Data[5] = Data;
 }
 
@@ -30,10 +30,10 @@ UDP_Segment::UDP_Segment(char Raw_Data[6]) {
         this->Raw_Data[i] = Raw_Data[i];
     }
     Control_Byte = (uint8_t) Raw_Data[0];
-    SEQ = (uint) Raw_Data[1];
-    SEQ += ((uint) Raw_Data[2] << 8);
-    SEQ += ((uint) Raw_Data[3] << 16);
-    SEQ += ((uint) Raw_Data[4] << 24);
+    SEQ = (uint) Raw_Data[1];//Bits[7:0]
+    SEQ += ((uint) Raw_Data[2] << 8);//Bits[15:8]
+    SEQ += ((uint) Raw_Data[3] << 16);//Bits[23:16]
+    SEQ += ((uint) Raw_Data[4] << 24);//Bits[31:24]
     Data = Raw_Data[5];
     FIN = Control_Byte & (uint8_t) 1;
     SYN = Control_Byte & (uint8_t) 2;
@@ -88,7 +88,7 @@ bool Sender::WaitOne(UDP_Segment &udp_segment) {
 bool Sender::SetTimeout(int milliseconds) {
     timeval tv;
     tv.tv_sec = milliseconds / 1000;
-    tv.tv_usec = (milliseconds - tv.tv_sec) * 1000;
+    tv.tv_usec = (milliseconds - 1000 * tv.tv_sec) * 1000;
     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
         cerr << "Timeout setting failed" << endl;
         return false;
@@ -142,7 +142,7 @@ bool Receiver::WaitOne(UDP_Segment &udp_segment) {
 bool Receiver::SetTimeout(int milliseconds) {
     timeval tv;
     tv.tv_sec = milliseconds / 1000;
-    tv.tv_usec = (milliseconds - tv.tv_sec) * 1000;
+    tv.tv_usec = (milliseconds - 1000 * tv.tv_sec) * 1000;
     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
         cerr << "Timeout setting failed" << endl;
         return false;
