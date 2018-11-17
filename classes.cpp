@@ -18,9 +18,9 @@ UDP_Segment::UDP_Segment(bool SYN, bool ACK, bool FIN, uint SEQ_Number, char Dat
         Control_Byte = Control_Byte | (uint8_t) 4;
     Raw_Data[0] = (char) Control_Byte;
     Raw_Data[1] = (char) SEQ;
-    Raw_Data[2] = (char) SEQ>>8;
-    Raw_Data[3] = (char) SEQ>>16;
-    Raw_Data[4] = (char) SEQ>>24;
+    Raw_Data[2] = (char) SEQ >> 8;
+    Raw_Data[3] = (char) SEQ >> 16;
+    Raw_Data[4] = (char) SEQ >> 24;
     Raw_Data[5] = Data;
 }
 
@@ -31,9 +31,9 @@ UDP_Segment::UDP_Segment(char Raw_Data[6]) {
     }
     Control_Byte = (uint8_t) Raw_Data[0];
     SEQ = (uint) Raw_Data[1];
-    SEQ += ((uint)Raw_Data[2]<<8);
-    SEQ += ((uint)Raw_Data[3]<<16);
-    SEQ += ((uint)Raw_Data[4]<<24);
+    SEQ += ((uint) Raw_Data[2] << 8);
+    SEQ += ((uint) Raw_Data[3] << 16);
+    SEQ += ((uint) Raw_Data[4] << 24);
     Data = Raw_Data[5];
     FIN = Control_Byte & (uint8_t) 1;
     SYN = Control_Byte & (uint8_t) 2;
@@ -41,8 +41,7 @@ UDP_Segment::UDP_Segment(char Raw_Data[6]) {
 }
 
 
-UDP_Segment::UDP_Segment()
-{
+UDP_Segment::UDP_Segment() {
     Control_Byte = 0;
     SEQ = 0;
     Data = 0;
@@ -53,54 +52,52 @@ UDP_Segment::UDP_Segment()
 
 /*Sender Definition*/
 Sender::Sender(string remote_address, uint16_t remote_port) {
-        memset(&this->remote_address, 0, sizeof(sockaddr_in));
-        this->remote_address.sin_addr.s_addr = inet_addr(remote_address.c_str());
-        this->remote_address.sin_port = htons(remote_port);
-        this->remote_address.sin_family = AF_INET;
-        socklen = sizeof(struct sockaddr);
-    }
+    memset(&this->remote_address, 0, sizeof(sockaddr_in));
+    this->remote_address.sin_addr.s_addr = inet_addr(remote_address.c_str());
+    this->remote_address.sin_port = htons(remote_port);
+    this->remote_address.sin_family = AF_INET;
+    socklen = sizeof(struct sockaddr);
+}
 
-    bool Sender::InitializeSocket() {
-        if ((sockfd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-            cerr << "Failed to create socket" << endl;
-            return false;
-        }
-        cout << "Socket Created" << endl;
+bool Sender::InitializeSocket() {
+    if ((sockfd = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+        cerr << "Failed to create socket" << endl;
+        return false;
+    }
+    cout << "Socket Created" << endl;
+    return true;
+}
+
+bool Sender::SendOne(UDP_Segment udp_segment) {
+    if (sendto(sockfd, udp_segment.Raw_Data, 6, 0, (struct sockaddr *) &remote_address, socklen) < 0) {
+        return false;
+    } else
+        return true;
+}
+
+bool Sender::WaitOne(UDP_Segment &udp_segment) {
+    char buf[6];
+    if (recvfrom(sockfd, buf, 6, 0, (struct sockaddr *) &remote_address, &socklen) < 0) {
+        return false;
+    } else {
+        udp_segment = UDP_Segment(buf);
         return true;
     }
+}
 
-    bool Sender::SendOne(UDP_Segment udp_segment) {
-        if (sendto(sockfd, udp_segment.Raw_Data, 6, 0, (struct sockaddr *)&remote_address,socklen) < 0) {
-            return false;
-        } else
-            return true;
-    }
+bool Sender::SetTimeout(int milliseconds) {
+    timeval tv;
+    tv.tv_sec = milliseconds / 1000;
+    tv.tv_usec = (milliseconds - tv.tv_sec) * 1000;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+        cerr << "Timeout setting failed" << endl;
+        return false;
+    } else return true;
+}
 
-    bool Sender::WaitOne(UDP_Segment &udp_segment) {
-        char buf[6];
-        if (recvfrom(sockfd, buf, 6, 0, (struct sockaddr *) &remote_address, &socklen) < 0) {
-            return false;
-        } else {
-            udp_segment = UDP_Segment(buf);
-            return true;
-        }
-    }
-
-    bool Sender::SetRecvTimeout(int milliseconds)
-    {
-        timeval tv;
-        tv.tv_sec = milliseconds/1000;
-        tv.tv_usec = (milliseconds-tv.tv_sec)*1000;
-        if(setsockopt(sockfd,SOL_SOCKET,SO_RCVTIMEO,&tv, sizeof(tv))<0){
-            cerr<<"Timeout setting failed"<<endl;
-            return false;
-        }else return true;
-    }
-
-    void Sender::Close()
-    {
-        close(sockfd);
-    }
+void Sender::Close() {
+    close(sockfd);
+}
 
 
 /*Receiver Definition*/
@@ -117,9 +114,8 @@ bool Receiver::InitializeSocket() {
         cerr << "socket error" << endl;
         return false;
     }
-    if((bind(sockfd,(sockaddr*)&local_address,socklen))<0)
-    {
-        cerr<<"bind error"<<endl;
+    if ((bind(sockfd, (sockaddr *) &local_address, socklen)) < 0) {
+        cerr << "bind error" << endl;
         return false;
     }
     cout << "Socket Created" << endl;
@@ -127,7 +123,7 @@ bool Receiver::InitializeSocket() {
 }
 
 bool Receiver::SendOne(UDP_Segment udp_segment) {
-    if (sendto(sockfd, udp_segment.Raw_Data, 6, 0, (struct sockaddr *)&remote_address,socklen) < 0) {
+    if (sendto(sockfd, udp_segment.Raw_Data, 6, 0, (struct sockaddr *) &remote_address, socklen) < 0) {
         return false;
     } else
         return true;
@@ -143,18 +139,16 @@ bool Receiver::WaitOne(UDP_Segment &udp_segment) {
     }
 }
 
-bool Receiver::SetTimeout(int milliseconds)
-{
+bool Receiver::SetTimeout(int milliseconds) {
     timeval tv;
-    tv.tv_sec = milliseconds/1000;
-    tv.tv_usec = (milliseconds-tv.tv_sec)*1000;
-    if(setsockopt(sockfd,SOL_SOCKET,SO_RCVTIMEO,&tv, sizeof(tv))<0){
-        cerr<<"Timeout setting failed"<<endl;
+    tv.tv_sec = milliseconds / 1000;
+    tv.tv_usec = (milliseconds - tv.tv_sec) * 1000;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+        cerr << "Timeout setting failed" << endl;
         return false;
-    }else return true;
+    } else return true;
 }
 
-void Receiver::Close()
-{
+void Receiver::Close() {
     close(sockfd);
 }

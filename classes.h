@@ -39,7 +39,7 @@ public:
     bool InitializeSocket();
     bool SendOne(UDP_Segment udp_segment);
     bool WaitOne(UDP_Segment &udp_segment);
-    bool SetRecvTimeout(int milliseconds);
+    bool SetTimeout(int milliseconds);
     void Close();
 
 private:
