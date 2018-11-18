@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 
             case Establishing: {
                 ACK = UDP_Segment(true, true, false, segment.SEQ, 'a');
-                cout << "Sending ACK with SEQ #"<< segment.SEQ << endl;
+                cout << "Sending ACK with SEQ #" << segment.SEQ << endl;
                 receiver.SendOne(ACK);
                 if (receiver.WaitOne(segment)) {
                     if (segment.SEQ > 0) {
@@ -83,12 +83,12 @@ int main(int argc, char *argv[]) {
                     cnt++;
                 } else {//5 sec elapsed
                     cout << "Reception Complete:" << endl;
-                    cout<<"\"";
+                    cout << "\"";
                     while (!buffer.empty()) {
-                        cout<<buffer.front();
+                        cout << buffer.front();
                         buffer.pop();//Print FIFO queue
                     }
-                    cout<<"\""<<endl;
+                    cout << "\"" << endl;
                     status = Idle;
                 }
                 continue;
@@ -96,6 +96,8 @@ int main(int argc, char *argv[]) {
 
             case Timeout: {//If the port doesn't receive any packet in 5 sec, back to Idle 
                 cout << "Connection Timeout, release port to Idle..." << endl;
+                while (!buffer.empty())
+                    buffer.pop();
                 status = Idle;
                 continue;
             }
