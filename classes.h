@@ -13,6 +13,11 @@
 #include <unistd.h>
 using namespace std;
 
+
+enum SocketStatus {
+    Idle, Establishing, Transmitting, Finishing, Timeout
+};
+
 class UDP_Segment {
 public:
     bool SYN;
@@ -24,7 +29,7 @@ public:
 
     UDP_Segment(bool SYN, bool ACK, bool FIN, uint SEQ_Number, char Data);
 
-    UDP_Segment(char Raw_Data[6]);
+    explicit UDP_Segment(char Raw_Data[6]);
 
     UDP_Segment();
 

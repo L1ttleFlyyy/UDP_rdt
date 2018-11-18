@@ -1,11 +1,5 @@
 #include "classes.h"
 
-using namespace std;
-
-enum SocketStatus {
-    Establishing, Transmitting, Finishing, Timeout
-};
-
 int main(int argc, char *argv[]) {
 
     string buffer;//where data temporally saved

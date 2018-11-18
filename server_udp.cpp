@@ -1,12 +1,6 @@
 #include <queue>
 #include "classes.h"
 
-using namespace std;
-
-enum SocketStatus {
-    Idle, Establishing, Transmitting, Finishing, Timeout
-};
-
 int main(int argc, char *argv[]) {
 
     Receiver receiver = Receiver("10.0.0.2", 11714);
